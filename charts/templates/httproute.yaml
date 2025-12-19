@@ -1,0 +1,51 @@
+{{- if or .Values.gateway.name .Values.gateway.create }}
+{{- if .Values.ingress.enabled }}
+{{- fail "Cannot enable both gateway (name or create) and ingress.enabled - they are mutually exclusive. Use Gateway API OR Ingress, not both." }}
+{{- end }}
+{{- if and (not .Values.gateway.name) (not .Values.gateway.create) }}
+{{- fail "Either gateway.name (to reference existing Gateway) or gateway.create (to create Gateway) must be specified when using Gateway API." }}
+{{- end }}
+{{- if and (not .Values.gateway.create) (not .Values.gateway.name) }}
+{{- fail "gateway.name is required when gateway.create is false. Specify the name of the existing Gateway to reference." }}
+{{- end }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "dot-ai.fullname" . }}
+  labels:
+    {{- include "dot-ai.labels" . | nindent 4 }}
+  {{- with .Values.gateway.route.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+  - name: {{ if .Values.gateway.create }}{{ include "dot-ai.fullname" . }}-http{{ else }}{{ .Values.gateway.name }}{{ end }}
+    {{- if and .Values.gateway.namespace (not .Values.gateway.create) }}
+    namespace: {{ .Values.gateway.namespace }}
+    {{- end }}
+  hostnames:
+  {{- if .Values.gateway.create }}
+    {{- if .Values.gateway.listeners.http.hostname }}
+  - {{ .Values.gateway.listeners.http.hostname | quote }}
+    {{- else if .Values.gateway.listeners.https.hostname }}
+  - {{ .Values.gateway.listeners.https.hostname | quote }}
+    {{- else }}
+  - "*"
+    {{- end }}
+  {{- else }}
+  - "*"
+  {{- end }}
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /
+    backendRefs:
+    - name: {{ if eq .Values.deployment.method "toolhive" }}mcp-{{ include "dot-ai.fullname" . }}-proxy{{ else }}{{ include "dot-ai.fullname" . }}{{ end }}
+      port: 3456
+    {{- if .Values.gateway.route.timeout }}
+    timeouts:
+      request: {{ .Values.gateway.route.timeout }}
+    {{- end }}
+{{- end }}

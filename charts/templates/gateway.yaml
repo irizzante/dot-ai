@@ -1,0 +1,49 @@
+{{- if .Values.gateway.create }}
+{{- if .Values.ingress.enabled }}
+{{- fail "Cannot enable both gateway.create and ingress.enabled - they are mutually exclusive. Use Gateway API OR Ingress, not both." }}
+{{- end }}
+{{- if not .Values.gateway.className }}
+{{- fail "gateway.className is required when gateway.create is true. Specify the GatewayClass name (e.g., 'istio', 'kong', 'envoy-gateway')." }}
+{{- end }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ include "dot-ai.fullname" . }}-http
+  labels:
+    {{- include "dot-ai.labels" . | nindent 4 }}
+  {{- with .Values.gateway.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  gatewayClassName: {{ .Values.gateway.className }}
+  listeners:
+  {{- if .Values.gateway.listeners.http.enabled }}
+  - name: http
+    protocol: {{ .Values.gateway.listeners.http.protocol }}
+    port: {{ .Values.gateway.listeners.http.port }}
+    {{- if .Values.gateway.listeners.http.hostname }}
+    hostname: {{ .Values.gateway.listeners.http.hostname | quote }}
+    {{- end }}
+    allowedRoutes:
+      namespaces:
+        from: Same
+  {{- end }}
+  {{- if .Values.gateway.listeners.https.enabled }}
+  - name: https
+    protocol: {{ .Values.gateway.listeners.https.protocol }}
+    port: {{ .Values.gateway.listeners.https.port }}
+    {{- if .Values.gateway.listeners.https.hostname }}
+    hostname: {{ .Values.gateway.listeners.https.hostname | quote }}
+    {{- end }}
+    tls:
+      mode: {{ .Values.gateway.listeners.https.tls.mode }}
+      {{- with .Values.gateway.listeners.https.tls.certificateRefs }}
+      certificateRefs:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    allowedRoutes:
+      namespaces:
+        from: Same
+  {{- end }}
+{{- end }}

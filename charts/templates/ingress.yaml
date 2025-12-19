@@ -1,4 +1,7 @@
 {{- if .Values.ingress.enabled }}
+{{- if or .Values.gateway.name .Values.gateway.create }}
+{{- fail "Cannot enable both ingress.enabled and gateway (name or create) - they are mutually exclusive. Use Gateway API OR Ingress, not both." }}
+{{- end }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

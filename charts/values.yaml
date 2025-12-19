@@ -69,6 +69,56 @@ ingress:
     secretName: ""                  # TLS secret name (generated if empty when enabled)
     clusterIssuer: ""               # cert-manager ClusterIssuer name (e.g., "letsencrypt")
 
+# Gateway API configuration (mutually exclusive with Ingress)
+# Gateway API is the next-generation successor to Ingress for routing HTTP traffic
+# Best practice: Reference an existing platform-managed Gateway (gateway.name)
+# Alternative: Create a Gateway resource (gateway.create: true) for dev/testing
+gateway:
+  # Reference mode (RECOMMENDED): Reference an existing Gateway created by platform team
+  name: ""                          # Name of existing Gateway to reference (leave empty to disable Gateway API)
+  namespace: ""                     # Namespace of the Gateway (leave empty if same namespace as this release)
+  
+  # Creation mode (ALTERNATIVE): Create a Gateway resource managed by this chart
+  create: false                     # Set to true to create a Gateway resource (for dev/testing scenarios)
+  className: ""                     # GatewayClassName (required when create: true, e.g., "istio", "kong", "envoy-gateway")
+  
+  # Gateway listeners configuration (only used when create: true)
+  listeners:
+    http:
+      enabled: true                 # Enable HTTP listener on port 80
+      port: 80                      # HTTP port
+      protocol: HTTP                # Protocol type
+      hostname: ""                  # Optional: hostname for this listener (e.g., "dot-ai.example.com")
+    https:
+      enabled: false                # Enable HTTPS listener on port 443
+      port: 443                     # HTTPS port
+      protocol: HTTPS               # Protocol type
+      hostname: ""                  # Optional: hostname for this listener (e.g., "dot-ai.example.com")
+      # TLS configuration (only used when https.enabled: true)
+      tls:
+        mode: Terminate             # TLS mode: Terminate (decrypt at Gateway)
+        certificateRefs: []         # List of certificate references (e.g., from cert-manager)
+          # Example with cert-manager:
+          # - name: dot-ai-tls
+          #   kind: Secret
+  
+  # Gateway annotations (for external-dns, monitoring, etc.)
+  annotations: {}
+    # Example: external-dns integration
+    # external-dns.alpha.kubernetes.io/hostname: "dot-ai.example.com"
+  
+  # HTTPRoute configuration (applies to both reference and creation modes)
+  route:
+    # Timeout configuration for SSE (Server-Sent Events) streaming
+    # Gateway API controllers may use different timeout annotation patterns
+    # Common patterns: Kong uses konghq.com/request-timeout, Istio uses networking.istio.io/timeout
+    timeout: 3600s                  # Request timeout (default: 3600s for SSE streaming)
+    annotations: {}                 # HTTPRoute-specific annotations
+      # Example: Kong Gateway timeout
+      # konghq.com/request-timeout: "3600000"  # milliseconds
+      # Example: Istio timeout
+      # networking.istio.io/timeout: "3600s"
+
 # AI Provider configuration
 ai:
   provider: anthropic               # AI provider type (anthropic, anthropic_opus, anthropic_haiku, openai, google, kimi, kimi_thinking, xai, amazon_bedrock)
