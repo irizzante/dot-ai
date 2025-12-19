@@ -82,8 +82,6 @@ Implement Kubernetes Gateway API v1 (stable) support as a mutually exclusive alt
 | TEST-005 | Request timeout of 3600s configured in HTTPRoute for SSE streaming                                |
 | TEST-006 | Helm install fails with clear error when both `ingress.enabled` and `gateway.enabled` are true   |
 | TEST-007 | Backend service selection works correctly for both standard and toolhive deployment methods       |
-| TEST-008 | external-dns creates DNS records when annotations are configured                                  |
-| TEST-009 | cert-manager provisions TLS certificate when certificateRefs are configured                       |
 
 ## Dependencies
 
